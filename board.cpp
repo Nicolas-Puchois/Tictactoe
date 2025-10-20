@@ -5,18 +5,18 @@ class Joueur
 {
 private:
     char symbole;
-    string name;
+    string nom;
 
 public:
     // Constructor
-    Joueur(char symbole = 'X', string name = "Player X") : symbole(symbole), name(name) {}
+    Joueur(char symbole, string nom) : symbole(symbole), nom(nom) {}
 
     // Getter methods
     char getSymbole() const { return symbole; }
-    string getName() const { return name; }
+    string getNom() const { return nom; }
 };
 
-class Board
+class Plateau
 {
 private:
     // Tableau pour stocker l'état du jeu
@@ -25,14 +25,14 @@ private:
 
 public:
     // Initialisation de la grille
-    // Constructor to initialize the board
-    Board() : filledCells(0)
+    // Constructeur pour initialiser le plateau
+    Plateau() : compteurCaseRemplie(0)
     {
         for (int i = 0; i < 3; i++)
         {
             for (int j = 0; j < 3; j++)
             {
-                grid[i][j] = ' ';
+                grille[i][j] = ' ';
             }
         }
     }
@@ -48,10 +48,10 @@ public:
             }
             cout << "+" << endl;
 
-            // Ligne avec espaces
+            // Ligne avec les symboles
             for (int j = 0; j < taille; ++j)
             {
-                cout << "|   ";
+                cout << "| " << grille[i][j] << " ";
             }
             cout << "|" << endl;
         }
@@ -64,9 +64,9 @@ public:
         cout << "+" << endl;
     }
 
-    bool verifierVictoire()
+    bool verifierVictoire(char symbole)
     {
-        // Check rows
+        // Vérifier les lignes
         for (int i = 0; i < 3; i++)
         {
             if (grille[i][0] == symbole && grille[i][1] == symbole && grille[i][2] == symbole)
@@ -75,7 +75,7 @@ public:
             }
         }
 
-        // Check columns
+        // Vérifier les colonnes
         for (int i = 0; i < 3; i++)
         {
             if (grille[0][i] == symbole && grille[1][i] == symbole && grille[2][i] == symbole)
@@ -84,7 +84,7 @@ public:
             }
         }
 
-        // Check diagonals
+        // Vérifier les diagonales
         if (grille[0][0] == symbole && grille[1][1] == symbole && grille[2][2] == symbole)
         {
             return true;
@@ -97,9 +97,31 @@ public:
         return false;
     }
 
-    bool isFull() const
+    bool estPleine() const
     {
         return compteurCaseRemplie == 9;
+    }
+
+    // vérifier si le coup est valide
+    bool estValide(int ligne, int colonne)
+    {
+        // Vérifier les limites
+        if (ligne < 0 || ligne >= 3 || colonne < 0 || colonne >= 3)
+        {
+            return false;
+        }
+        // Vérifier si la case est libre
+        return grille[ligne][colonne] == ' ';
+    }
+
+    // méthode pour faire un coup
+    void faireUncoup(int ligne, int colonne, Joueur joueurActuel)
+    {
+        if (estValide(ligne, colonne))
+        {
+            grille[ligne][colonne] = joueurActuel.getSymbole();
+            compteurCaseRemplie++;
+        }
     }
 };
 
@@ -107,83 +129,85 @@ public:
 class Morpion
 {
 private:
-    Board board;
+    Plateau plateau;
     Joueur joueurs[2];
-    int currentPlayerIndex;
+    int indexJoueurActuel;
 
 public:
-    // Constructor
-    Morpion() : currentPlayerIndex(0)
+    // Constructeur
+    Morpion() : indexJoueurActuel(0),
+                joueurs{Joueur('X', "Joueur 1"), Joueur('O', "Joueur 2")}
     {
-        joueurs[0] = Joueur('X', "Joueur 1");
-        joueurs[1] = Joueur('O', "Joueur 2");
     }
 
-    // Method to get the current player
-    Joueur getCurrentPlayer()
+    // Méthode pour obtenir le joueur actuel
+    Joueur obtenirJoueurActuel()
     {
-        return joueurs[currentPlayerIndex];
+        return joueurs[indexJoueurActuel];
     }
 
-    // Method to switch turns
+    // Méthode pour changer de tour
     void changerTour()
     {
-        currentPlayerIndex = (currentPlayerIndex + 1) % 2;
+        indexJoueurActuel = (indexJoueurActuel + 1) % 2;
     }
 
-    // Method to play the game
-    void play()
+    // Méthode pour jouer le jeu
+    void jouer()
     {
-        int row, col;
-        cout << "Welcome to Tic-Tac-Toe!" << endl;
+        int ligne, colonne;
+        cout << "Bienvenue au Morpion!" << endl;
 
-        while (!board.isFull())
+        while (!plateau.estPleine())
         {
-            // Display the board
-            board.dessinerGrille();
+            // Afficher le plateau
+            plateau.dessinerGrille(3);
 
-            Joueur &joueurs = getCurrentPlayer();
+            Joueur joueurActuel = obtenirJoueurActuel();
 
-            // Get valid input
+            // Obtenir une entrée valide
             while (true)
             {
-                cout << currentPlayer.getName() << " (" << currentPlayer.getSymbol()
-                     << "), enter row (1-3) and column (1-3): ";
-                cin >> row >> col;
-                row--;
-                col--; // Convert to 0-indexed
+                cout << joueurActuel.getNom() << " (" << joueurActuel.getSymbole()
+                     << "), entrez ligne (1-3) et colonne (1-3): ";
+                cin >> ligne >> colonne;
+                ligne--;
+                colonne--; // Convertir en index 0
 
-                if (board.isValidMove(row, col))
+                if (plateau.estValide(ligne, colonne))
                 {
                     break;
                 }
                 else
                 {
-                    cout << "Invalid move. Try again." << endl;
+                    cout << "Coup invalide ! Essayez une autre case." << endl;
                 }
             }
 
-            // Make move
-            board.makeMove(row, col, currentPlayer.getSymbol());
+            // Faire le coup
+            plateau.faireUncoup(ligne, colonne, joueurActuel);
 
-            // Check for win
-            if (board.checkWin(currentPlayer.getSymbol()))
+            // Vérifier la victoire
+            if (plateau.verifierVictoire(joueurActuel.getSymbole()))
             {
-                board.drawBoard();
-                cout << currentPlayer.getName() << " wins!" << endl;
+                plateau.dessinerGrille(3);
+                cout << joueurActuel.getNom() << " gagne!" << endl;
                 return;
             }
 
-            // Switch turns
-            switchTurn();
+            // Changer de tour
+            changerTour();
         }
 
-        // Game ended in a draw
-        board.drawBoard();
-        cout << "It's a draw!" << endl;
+        // Jeu terminé par match nul
+        plateau.dessinerGrille(3);
+        cout << "Match nul!" << endl;
     }
 };
 
 int main()
 {
+    Morpion jeu;
+    jeu.jouer();
+    return 0;
 }
